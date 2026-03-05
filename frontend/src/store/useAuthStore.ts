@@ -1,6 +1,32 @@
 import { persist } from "zustand/middleware";
 import { create } from "zustand";
 
+/** Deferred storage so rehydration runs after first paint - prevents redirect to login on refresh */
+function createPersistStorage() {
+  return {
+    getItem: (key: string): Promise<string | null> =>
+      new Promise((resolve) => {
+        setTimeout(() => {
+          try {
+            resolve(localStorage.getItem(key));
+          } catch {
+            resolve(null);
+          }
+        }, 0);
+      }),
+    setItem: (key: string, value: string): void => {
+      try {
+        localStorage.setItem(key, value);
+      } catch {}
+    },
+    removeItem: (key: string): void => {
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+    },
+  };
+}
+
 interface AuthUser {
   _id: string;
   fullName: string;
@@ -71,15 +97,14 @@ const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "empirehost-auth-store",
+      storage: createPersistStorage(),
       partialize: (state) => ({
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => () => {
-        setTimeout(() => {
-          useAuthStore.setState({ _hasHydrated: true });
-        }, 0);
+      onRehydrateStorage: () => (_state, _err) => {
+        useAuthStore.setState({ _hasHydrated: true });
       },
     }
   )
