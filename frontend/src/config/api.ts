@@ -12,7 +12,7 @@ function getBackendBaseUrl(): string {
       ? raw.trim().replace(/\/+$/, "")
       : "";
   if (url) return url;
-  if (import.meta.env.DEV) return "http://localhost:4001";
+  if (import.meta.env.DEV) return "https://empirehost-backend-d563ca7f1bbc.herokuapp.com";
   return "";
 }
 
