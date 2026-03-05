@@ -15,6 +15,7 @@ interface AuthStore {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  _hasHydrated: boolean;
 
   setAuth: (user: AuthUser, token: string | null) => void;
   setUser: (user: Partial<AuthUser>) => void;
@@ -28,6 +29,7 @@ const useAuthStore = create<AuthStore>()(
       user: null,
       token: null,
       isAuthenticated: false,
+      _hasHydrated: false,
 
       /* =====================
          AUTH SET
@@ -69,6 +71,16 @@ const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "empirehost-auth-store",
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
+      onRehydrateStorage: () => () => {
+        setTimeout(() => {
+          useAuthStore.setState({ _hasHydrated: true });
+        }, 0);
+      },
     }
   )
 );
