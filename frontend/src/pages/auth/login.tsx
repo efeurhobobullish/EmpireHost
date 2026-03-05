@@ -68,7 +68,7 @@ export default function Login() {
     }
   };
 
-  const onError = (errors: FieldErrors<LoginSchema>) => {
+  const onError = (_errors: FieldErrors<LoginSchema>) => {
     setErrorMessage(null);
   };
 
