@@ -7,7 +7,6 @@ import {
   setStoredApiBaseUrl,
   BACKEND_BASE_URL,
 } from "@/config/api";
-import api from "@/config/api";
 
 export default function ApiSettings() {
   const [inputUrl, setInputUrl] = useState("");
