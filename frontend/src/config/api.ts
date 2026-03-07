@@ -1,18 +1,23 @@
 import axios from "axios";
-import { useAuthStore } from "@/store";
+import useAuthStore from "@/store/useAuthStore";
 
 /* =========================
-   BACKEND URL (single source of truth)
-   Set VITE_BASE_URL in .env for production (e.g. https://your-api.herokuapp.com)
+   BACKEND URL
 ========================= */
 function getBackendBaseUrl(): string {
   const raw = import.meta.env.VITE_BASE_URL;
+
   const url =
     typeof raw === "string" && raw.trim()
       ? raw.trim().replace(/\/+$/, "")
       : "";
+
   if (url) return url;
-  if (import.meta.env.DEV) return "https://empirehost-backend-d563ca7f1bbc.herokuapp.com";
+
+  if (import.meta.env.DEV) {
+    return "https://empirehost-backend-d563ca7f1bbc.herokuapp.com";
+  }
+
   return "";
 }
 
@@ -33,29 +38,36 @@ const api = axios.create({
 /* =========================
    REQUEST INTERCEPTOR
 ========================= */
-api.interceptors.request.use(
-  (config: import("axios").InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().token;
+api.interceptors.request.use((config) => {
+  const { token } = useAuthStore.getState();
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  console.log("TOKEN FROM STORE:", token);
 
-    return config;
-  },
-  (error: unknown) => Promise.reject(error)
-);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.error("NO TOKEN WAS FOUND IN ZUSTAND STORE!");
+  }
+
+  return config;
+});
 
 /* =========================
    RESPONSE INTERCEPTOR
 ========================= */
 api.interceptors.response.use(
-  (response: import("axios").AxiosResponse) => response,
-  (error: unknown) => {
-    const err = error as { response?: { status?: number } };
-    if (err?.response?.status === 401) {
-      useAuthStore.getState().logout();
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 401) {
+      const { setUser, setToken } = useAuthStore.getState();
+
+      // logout user if token expired
+      setUser(null);
+      setToken(null);
     }
+
     return Promise.reject(error);
   }
 );
