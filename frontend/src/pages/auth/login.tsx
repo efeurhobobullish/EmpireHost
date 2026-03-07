@@ -11,26 +11,6 @@ import api from "@/config/api";
 import { toast } from "sonner";
 import useAuthStore from "@/store/useAuthStore";
 
-function getLoginErrorMessage(err: any): string {
-  if (!err) return "Something went wrong.";
-
-  const msg = err?.response?.data?.message;
-  if (msg) return msg;
-
-  const status = err?.response?.status;
-
-  if (status === 401) return "Invalid email/username or password.";
-  if (status === 403) return "Please verify your email first.";
-  if (status === 400) return "Email/username and password are required.";
-  if (status >= 500) return "Server error. Try again later.";
-
-  if (err?.message === "Network Error" || err?.code === "ERR_NETWORK") {
-    return "Cannot reach server. Check backend is running.";
-  }
-
-  return err?.message || "Invalid credentials. Please try again.";
-}
-
 export default function Login() {
   const navigate = useNavigate();
 
@@ -63,15 +43,16 @@ export default function Login() {
 
       const { user, token } = res.data;
 
-      // ✅ NEW STORE METHODS
       setUser(user);
       setToken(token);
 
-      toast.success("Welcome back!");
+      toast.success("Welcome back");
       navigate("/dashboard");
 
     } catch (err: any) {
-      const message = getLoginErrorMessage(err);
+      const message =
+        err?.response?.data?.message || "Login failed";
+
       setErrorMessage(message);
       toast.error(message);
     } finally {
@@ -118,7 +99,6 @@ export default function Login() {
               className="text-white dark:text-[#171717]"
               onChange={(e) => setSaveLogin(e.target.checked)}
             />
-
             <label htmlFor="remember">Keep me signed in</label>
           </div>
 
@@ -137,7 +117,7 @@ export default function Login() {
 
         {errorMessage && (
           <div className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-            <AlertCircle size={18} className="shrink-0" />
+            <AlertCircle size={18} />
             <span>{errorMessage}</span>
           </div>
         )}
