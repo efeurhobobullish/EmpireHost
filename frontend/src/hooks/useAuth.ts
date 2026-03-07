@@ -3,17 +3,17 @@ import useAuthStore from "@/store/useAuthStore";
 
 export default function useAuth() {
   const {
-    setAuth,
-    setUser,
-    logout,
-    user,
     token,
-    isAuthenticated,
+    user,
+    setToken,
+    setUser,
+    checkAuth,
+    isCheckingAuth,
   } = useAuthStore();
 
-  /* =========================
-     🔄 REFRESH FULL USER
-  ========================= */
+  /* ======================
+     REFRESH USER
+  ====================== */
   const refreshUser = async () => {
     if (!token) return;
 
@@ -22,15 +22,15 @@ export default function useAuth() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setAuth(data.user, token);
+      setUser(data.user);
     } catch {
-      // silent fail (token may be invalid)
+      // ignore
     }
   };
 
-  /* =========================
-     💰 REFRESH COINS ONLY
-  ========================= */
+  /* ======================
+     REFRESH COINS
+  ====================== */
   const refreshPoints = async () => {
     if (!token) return;
 
@@ -39,15 +39,18 @@ export default function useAuth() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setUser({ coins: data.user.coins });
-    } catch {
-      // silent fail
-    }
+      if (user) {
+        setUser({
+          ...user,
+          coins: data.user.coins,
+        });
+      }
+    } catch {}
   };
 
-  /* =========================
-     🧾 SIGN UP
-  ========================= */
+  /* ======================
+     SIGNUP
+  ====================== */
   const signup = async (
     fullName: string,
     email: string,
@@ -62,8 +65,8 @@ export default function useAuth() {
         referralCode,
       });
 
-      setAuth(data.user, data.token);
-      await refreshUser();
+      setToken(data.token);
+      setUser(data.user);
 
       return { success: true };
     } catch (err: any) {
@@ -74,9 +77,9 @@ export default function useAuth() {
     }
   };
 
-  /* =========================
-     🔑 LOGIN
-  ========================= */
+  /* ======================
+     LOGIN
+  ====================== */
   const login = async (email: string, password: string) => {
     try {
       const { data } = await api.post("/auth/login", {
@@ -84,8 +87,8 @@ export default function useAuth() {
         password,
       });
 
-      setAuth(data.user, data.token);
-      await refreshUser();
+      setToken(data.token);
+      setUser(data.user);
 
       return { success: true };
     } catch (err: any) {
@@ -96,35 +99,23 @@ export default function useAuth() {
     }
   };
 
-  /* =========================
-     🛡 CHECK SESSION (FIXED)
-  ========================= */
-  const checkSession = async () => {
-    if (!token) return null;
-
-    try {
-      const { data } = await api.get("/auth/check-auth", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setAuth(data.user, token);
-      return data.user;
-    } catch {
-      logout();
-      return null;
-    }
+  /* ======================
+     LOGOUT
+  ====================== */
+  const logout = () => {
+    setToken(null);
+    setUser(null);
   };
 
   return {
     signup,
     login,
-    checkSession,
+    logout,
     refreshUser,
     refreshPoints,
-    logout,
+    checkAuth,
     user,
     token,
-    isAuthenticated,
-    setUser,
+    isCheckingAuth,
   };
 }
