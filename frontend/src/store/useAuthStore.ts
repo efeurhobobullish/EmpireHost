@@ -1,32 +1,9 @@
-import { persist } from "zustand/middleware";
 import { create } from "zustand";
+import { persist, PersistStorage, StorageValue } from "zustand/middleware";
 
-/** Deferred storage so rehydration runs after first paint - prevents redirect to login on refresh */
-function createPersistStorage() {
-  return {
-    getItem: (key: string): Promise<string | null> =>
-      new Promise((resolve) => {
-        setTimeout(() => {
-          try {
-            resolve(localStorage.getItem(key));
-          } catch {
-            resolve(null);
-          }
-        }, 0);
-      }),
-    setItem: (key: string, value: string): void => {
-      try {
-        localStorage.setItem(key, value);
-      } catch {}
-    },
-    removeItem: (key: string): void => {
-      try {
-        localStorage.removeItem(key);
-      } catch {}
-    },
-  };
-}
-
+/* =========================
+   AUTH USER TYPE
+========================= */
 interface AuthUser {
   _id: string;
   fullName: string;
@@ -37,6 +14,9 @@ interface AuthUser {
   role: "user" | "admin" | "developer";
 }
 
+/* =========================
+   STORE TYPE
+========================= */
 interface AuthStore {
   user: AuthUser | null;
   token: string | null;
@@ -49,6 +29,45 @@ interface AuthStore {
   logout: () => void;
 }
 
+/* =========================
+   CUSTOM ASYNC STORAGE
+   (prevents redirect flicker)
+========================= */
+const createPersistStorage = (): PersistStorage<AuthStore> => ({
+  getItem: (name) =>
+    new Promise((resolve) => {
+      setTimeout(() => {
+        try {
+          const item = localStorage.getItem(name);
+
+          if (!item) {
+            resolve(null);
+            return;
+          }
+
+          resolve(JSON.parse(item) as StorageValue<AuthStore>);
+        } catch {
+          resolve(null);
+        }
+      }, 0);
+    }),
+
+  setItem: (name, value) => {
+    try {
+      localStorage.setItem(name, JSON.stringify(value));
+    } catch {}
+  },
+
+  removeItem: (name) => {
+    try {
+      localStorage.removeItem(name);
+    } catch {}
+  },
+});
+
+/* =========================
+   AUTH STORE
+========================= */
 const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -58,7 +77,7 @@ const useAuthStore = create<AuthStore>()(
       _hasHydrated: false,
 
       /* =====================
-         AUTH SET
+         SET AUTH
       ===================== */
       setAuth: (user, token) =>
         set({
@@ -68,21 +87,29 @@ const useAuthStore = create<AuthStore>()(
         }),
 
       /* =====================
-         USER MERGE UPDATE
+         UPDATE USER
       ===================== */
       setUser: (updatedUser) => {
         const current = get().user;
+
         if (!current) return;
-        set({ user: { ...current, ...updatedUser } });
+
+        set({
+          user: { ...current, ...updatedUser },
+        });
       },
 
       /* =====================
-         COINS UPDATE ONLY
+         UPDATE COINS
       ===================== */
       updateUserCoins: (coins) => {
         const current = get().user;
+
         if (!current) return;
-        set({ user: { ...current, coins } });
+
+        set({
+          user: { ...current, coins },
+        });
       },
 
       /* =====================
@@ -97,13 +124,18 @@ const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "empirehost-auth-store",
+
       storage: createPersistStorage(),
+
+      /* Only persist safe values */
       partialize: (state) => ({
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (_state, _err) => {
+
+      /* Hydration flag */
+      onRehydrateStorage: () => () => {
         useAuthStore.setState({ _hasHydrated: true });
       },
     }
