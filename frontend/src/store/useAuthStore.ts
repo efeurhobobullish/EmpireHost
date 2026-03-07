@@ -37,25 +37,25 @@ const useAuthStore = create<AuthStore>()(
         set({ isCheckingAuth: true });
 
         try {
+          const token = useAuthStore.getState().token;
+
+          // If there is no token, do nothing
+          if (!token) {
+            set({ isCheckingAuth: false });
+            return;
+          }
+
           const response = await api.get("/auth/check");
 
           if (response.data.success) {
             set({
               user: response.data.user,
-              token: response.data.token,
-            });
-          } else {
-            set({
-              user: null,
-              token: null,
             });
           }
+
         } catch (error) {
           console.error(error);
-          set({
-            user: null,
-            token: null,
-          });
+          // Do NOT clear token here
         } finally {
           set({ isCheckingAuth: false });
         }
@@ -63,6 +63,7 @@ const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "auth-store",
+
       partialize: (state) => ({
         token: state.token,
         user: state.user,
