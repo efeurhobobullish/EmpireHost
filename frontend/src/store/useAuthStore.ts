@@ -24,38 +24,31 @@ interface AuthStore {
 
 const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       isCheckingAuth: false,
 
       setToken: (token) => set({ token }),
-
       setUser: (user) => set({ user }),
 
       checkAuth: async () => {
+        const token = get().token;
+
+        // no token → nothing to check
+        if (!token) return;
+
         set({ isCheckingAuth: true });
 
         try {
-          const token = useAuthStore.getState().token;
+          const res = await api.get("/auth/check");
 
-          // If there is no token, do nothing
-          if (!token) {
-            set({ isCheckingAuth: false });
-            return;
+          if (res.data?.success) {
+            set({ user: res.data.user });
           }
-
-          const response = await api.get("/auth/check");
-
-          if (response.data.success) {
-            set({
-              user: response.data.user,
-            });
-          }
-
-        } catch (error) {
-          console.error(error);
-          // Do NOT clear token here
+        } catch (err) {
+          console.error("checkAuth failed:", err);
+          // DO NOT clear token here
         } finally {
           set({ isCheckingAuth: false });
         }
@@ -63,7 +56,6 @@ const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "auth-store",
-
       partialize: (state) => ({
         token: state.token,
         user: state.user,
