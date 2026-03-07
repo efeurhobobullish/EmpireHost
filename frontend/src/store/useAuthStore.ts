@@ -6,68 +6,65 @@ interface User {
   fullName: string;
   email: string;
   avatar?: string;
-  coins?: number;
+  coins: number;
   referralCode?: string;
   role?: "user" | "admin" | "developer";
 }
 
 interface AuthStore {
-  token: string | null;
   user: User | null;
-  isCheckingAuth: boolean;
+  token: string | null;
+  isAuthenticated: boolean;
+  _hasHydrated: boolean;
 
-  setToken: (token: string | null) => void;
-  setUser: (user: User | null) => void;
-  checkAuth: () => Promise<void>;
+  setAuth: (user: User, token: string | null) => void;
+  setUser: (user: Partial<User>) => void;
+  logout: () => void;
 }
 
 const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
-      token: null,
+    (set, get) => ({
       user: null,
-      isCheckingAuth: false,
+      token: null,
+      isAuthenticated: false,
+      _hasHydrated: false,
 
-      setToken: (token) => set({ token }),
+      setAuth: (user, token) =>
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+        }),
 
-      setUser: (user) => set({ user }),
+      setUser: (updatedUser) => {
+        const current = get().user;
+        if (!current) return;
 
-      checkAuth: async () => {
-        set({ isCheckingAuth: true });
-
-        try {
-          const response = await api.get("/auth/check");
-
-          if (response.data.success) {
-            set({
-              user: response.data.user,
-              token: response.data.token,
-            });
-          } else {
-            set({
-              user: null,
-              token: null,
-            });
-          }
-        } catch (error) {
-          console.log(error);
-
-          set({
-            user: null,
-            token: null,
-          });
-        } finally {
-          set({ isCheckingAuth: false });
-        }
+        set({
+          user: { ...current, ...updatedUser },
+        });
       },
+
+      logout: () =>
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+        }),
     }),
     {
-      name: "auth-store",
+      name: "empirehost-auth",
 
       partialize: (state) => ({
-        token: state.token,
         user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
       }),
+
+      onRehydrateStorage: () => () => {
+        useAuthStore.setState({ _hasHydrated: true });
+      },
     }
   )
 );
