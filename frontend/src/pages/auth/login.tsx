@@ -13,22 +13,29 @@ import useAuthStore from "@/store/useAuthStore";
 
 function getLoginErrorMessage(err: any): string {
   if (!err) return "Something went wrong.";
+
   const msg = err?.response?.data?.message;
   if (msg) return msg;
+
   const status = err?.response?.status;
+
   if (status === 401) return "Invalid email/username or password.";
   if (status === 403) return "Please verify your email first.";
   if (status === 400) return "Email/username and password are required.";
   if (status >= 500) return "Server error. Try again later.";
+
   if (err?.message === "Network Error" || err?.code === "ERR_NETWORK") {
-    return "Cannot reach server. Check backend is running on port 4001 and CORS.";
+    return "Cannot reach server. Check backend is running.";
   }
+
   return err?.message || "Invalid credentials. Please try again.";
 }
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+
+  const setUser = useAuthStore((state) => state.setUser);
+  const setToken = useAuthStore((state) => state.setToken);
 
   const [loading, setLoading] = useState(false);
   const [saveLogin, setSaveLogin] = useState(false);
@@ -44,6 +51,7 @@ export default function Login() {
 
   const onSubmit = async (data: LoginSchema) => {
     setErrorMessage(null);
+
     try {
       setLoading(true);
 
@@ -55,10 +63,13 @@ export default function Login() {
 
       const { user, token } = res.data;
 
-      setAuth(user, token);
+      // ✅ NEW STORE METHODS
+      setUser(user);
+      setToken(token);
 
       toast.success("Welcome back!");
       navigate("/dashboard");
+
     } catch (err: any) {
       const message = getLoginErrorMessage(err);
       setErrorMessage(message);
@@ -107,6 +118,7 @@ export default function Login() {
               className="text-white dark:text-[#171717]"
               onChange={(e) => setSaveLogin(e.target.checked)}
             />
+
             <label htmlFor="remember">Keep me signed in</label>
           </div>
 
@@ -130,7 +142,6 @@ export default function Login() {
           </div>
         )}
 
-        {/* Security note */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted">
           <ShieldCheck size={14} className="text-primary" />
           <span>Your session is securely managed</span>
