@@ -1,5 +1,7 @@
-import { Route, Routes } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
+import { useEffect } from "react";
+
 import { ScrollToTop } from "@/components/ui";
 
 import { Home, NotFound } from "@/pages";
@@ -26,9 +28,16 @@ import {
   BotLogs,
 } from "@/pages/main";
 
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Protect from "@/pages/protect";
+import useAuth from "@/hooks/useAuth";
 
 export default function App() {
+  const { checkAuth } = useAuth();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   return (
     <>
       <ScrollToTop />
@@ -44,117 +53,25 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ========== PROTECTED ROUTES ========== */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<Protect />}>
+          <Route path="/dashboard" element={<Dashboard />} />
 
-        <Route
-          path="/dashboard/bots"
-          element={
-            <ProtectedRoute>
-              <Bots />
-            </ProtectedRoute>
-          }
-        />
+          <Route path="/dashboard/bots" element={<Bots />} />
+          <Route path="/dashboard/templates" element={<Templates />} />
+          <Route path="/dashboard/deploy" element={<Deploy />} />
+          <Route path="/dashboard/coins" element={<Coins />} />
+          <Route path="/dashboard/store" element={<Store />} />
+          <Route path="/dashboard/referral" element={<Referral />} />
+          <Route path="/dashboard/community" element={<Community />} />
+          <Route path="/dashboard/developers" element={<Developers />} />
 
-        <Route
-          path="/dashboard/templates"
-          element={
-            <ProtectedRoute>
-              <Templates />
-            </ProtectedRoute>
-          }
-        />
+          <Route path="/dashboard/bots/:botId/logs" element={<BotLogs />} />
 
-        <Route
-          path="/dashboard/deploy"
-          element={
-            <ProtectedRoute>
-              <Deploy />
-            </ProtectedRoute>
-          }
-        />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/withdraw" element={<Withdraw />} />
+        </Route>
 
-        <Route
-          path="/dashboard/coins"
-          element={
-            <ProtectedRoute>
-              <Coins />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/dashboard/store"
-          element={
-            <ProtectedRoute>
-              <Store />
-            </ProtectedRoute>
-          }
-        />
-
-       
-         
-        <Route
-          path="/dashboard/bots/:botId/logs"
-          element={
-            <ProtectedRoute>
-              <BotLogs/>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/dashboard/referral"
-          element={
-            <ProtectedRoute>
-              <Referral />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/dashboard/community"
-          element={
-            <ProtectedRoute>
-              <Community />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/dashboard/developers"
-          element={
-            <ProtectedRoute>
-              <Developers />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/withdraw"
-          element={
-            <ProtectedRoute>
-              <Withdraw />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* ========== FALLBACK ========== */}
+        {/* ========== 404 ========== */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
